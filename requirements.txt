@@ -7,3 +7,11 @@ easydict==1.9
 Pillow==7.1.2
 tensorboardX
 
+# numpy
+# torch
+# scikit_image
+# matplotlib
+# tqdm
+# easydict
+# Pillow
+# tensorboardX
