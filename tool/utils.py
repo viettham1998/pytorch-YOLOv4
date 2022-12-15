@@ -331,6 +331,42 @@ def plot_boxes_cv2(img, boxes, savename=None, class_names=None, color=None):
         cv2.imwrite(savename, img)
     return img
 
+def save_boxes_txt(img, boxes, savename=None, class_names=None):
+    colors = torch.FloatTensor([[1, 0, 1], [0, 0, 1], [0, 1, 1], [0, 1, 0], [1, 1, 0], [1, 0, 0]]);
+
+    def get_color(c, x, max_val):
+        ratio = float(x) / max_val * 5
+        i = int(math.floor(ratio))
+        j = int(math.ceil(ratio))
+        ratio = ratio - i
+        r = (1 - ratio) * colors[i][c] + ratio * colors[j][c]
+        return int(r * 255)
+
+    width = img.width
+    height = img.height
+    draw = ImageDraw.Draw(img)
+    f = open(savename, 'w')
+    lines = ""
+    for i in range(len(boxes)):
+        box = boxes[i]
+        x1 = (box[0] - box[2] / 2.0) * width
+        y1 = (box[1] - box[3] / 2.0) * height
+        x2 = (box[0] + box[2] / 2.0) * width
+        y2 = (box[1] + box[3] / 2.0) * height
+
+        rgb = (255, 0, 0)
+        if len(box) >= 7 and class_names:
+            cls_conf = box[5]
+            cls_id = box[6]
+            print('%s: %f' % (class_names[cls_id], cls_conf))
+            classes = len(class_names)
+            line = f"{cls_id} {cls_conf} {x1} {y1} {x2} {y2}\n"
+            lines  = lines + line
+            
+    f.write(lines) 
+    f.close()
+    return img
+
 
 def plot_boxes(img, boxes, savename=None, class_names=None):
     colors = torch.FloatTensor([[1, 0, 1], [0, 0, 1], [0, 1, 1], [0, 1, 0], [1, 1, 0], [1, 0, 0]]);
@@ -465,3 +501,4 @@ def post_processing(img, conf_thresh, n_classes, nms_thresh, list_features_numpy
         print('           total : %f' % (t4 - t0))
         print('-----------------------------------')
     return boxes
+
