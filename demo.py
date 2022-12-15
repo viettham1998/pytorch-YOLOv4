@@ -17,9 +17,12 @@
 from tool.utils import *
 from tool.darknet2pytorch import Darknet
 import argparse
+import os
+from os import listdir
+from os.path import isfile, join
 
 """hyper parameters"""
-use_cuda = True
+use_cuda = False
 num_classes = 80
 if num_classes == 20:
     namesfile = 'data/voc.names'
@@ -32,7 +35,7 @@ else:
 def detect(cfgfile, weightfile, imgfile):
     m = Darknet(cfgfile)
 
-    m.print_network()
+    # m.print_network()
     m.load_weights(weightfile)
     print('Loading weights from %s... Done!' % (weightfile))
 
@@ -50,7 +53,12 @@ def detect(cfgfile, weightfile, imgfile):
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
 
     class_names = load_class_names(namesfile)
-    plot_boxes(img, boxes, 'predictions.jpg', class_names)
+    file_txt_out = imgfile.split('/')[-1][:-4]
+    
+    os.makedirs("out_txt", exist_ok=True)
+    save_boxes_txt(img, boxes, f'out_txt/{file_txt_out}.txt', class_names)
+    os.makedirs("out_img", exist_ok=True)
+    plot_boxes(img, boxes, f'out_img/{file_txt_out}.jpg', class_names)
 
 
 def detect_imges(cfgfile, weightfile, imgfile_list=['data/dog.jpg', 'data/giraffe.jpg']):
@@ -70,7 +78,7 @@ def detect_imges(cfgfile, weightfile, imgfile_list=['data/dog.jpg', 'data/giraff
         imges_list.append(img)
         sized = img.resize((m.width, m.height))
         imges.append(np.expand_dims(np.array(sized), axis=0))
-
+    
     images = np.concatenate(imges, 0)
     for i in range(2):
         start = time.time()
@@ -78,10 +86,16 @@ def detect_imges(cfgfile, weightfile, imgfile_list=['data/dog.jpg', 'data/giraff
         finish = time.time()
         if i == 1:
             print('%s: Predicted in %f seconds.' % (imgfile, (finish - start)))
-
+    
     class_names = load_class_names(namesfile)
+    os.makedirs("out_img", exist_ok=True)
     for i,(img,box) in enumerate(zip(imges_list,boxes)):
-        plot_boxes(img, box, 'predictions{}.jpg'.format(i), class_names)
+        file_txt_out = imgfile_list[i]
+        print(i)
+        print(file_txt_out)
+        continue
+        save_boxes_txt(img, box, '{}/{}.txt'.format('out_txt', file_txt_out), class_names)
+        plot_boxes(img, box, '{}/predictions{}.jpg'.format("out_img",i), class_names)
 
 
 def detect_cv2(cfgfile, weightfile, imgfile):
@@ -182,6 +196,9 @@ def get_args():
     parser.add_argument('-imgfile', type=str,
                         default='./data/mscoco2017/train2017/190109_180343_00154162.jpg',
                         help='path of your image file.', dest='imgfile')
+    parser.add_argument('-source', type=str, 
+                        default='/content/PennFudanPed/PNGImages',
+                        help='path to folder image', dest='source')
     args = parser.parse_args()
 
     return args
@@ -189,6 +206,13 @@ def get_args():
 
 if __name__ == '__main__':
     args = get_args()
+    if (os.path.isdir(args.source)==True):
+      # onlyfiles = [join(args.source, f) for f in listdir(args.source) if isfile(join(args.source, f))]
+      for f in sorted(listdir(args.source)):
+        if isfile(join(args.source, f)):
+          detect(args.cfgfile, args.weightfile, join(args.source, f))
+      # detect_imges(args.cfgfile, args.weightfile, onlyfiles)
+    exit(0)
     if args.imgfile:
         detect(args.cfgfile, args.weightfile, args.imgfile)
         # detect_imges(args.cfgfile, args.weightfile)
@@ -196,3 +220,4 @@ if __name__ == '__main__':
         # detect_skimage(args.cfgfile, args.weightfile, args.imgfile)
     else:
         detect_cv2_camera(args.cfgfile, args.weightfile)
+
